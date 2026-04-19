@@ -18,3 +18,7 @@ def get_job(job_id: str) -> Job | None:
 
 def save_job(job: Job) -> None:
     _store[job.job_id] = job
+
+
+def all_jobs():
+    return list(_store.values())

@@ -1,5 +1,7 @@
 from __future__ import annotations
 import io
+import shutil
+import time
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -8,14 +10,31 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from fastapi.responses import FileResponse, Response
 from PIL import Image
 
-from app.jobs import create_job, get_job, save_job
-from app.models import GenerateRequest, CropRect
+from app.jobs import all_jobs, create_job, get_job, save_job
+from app.models import GenerateRequest, CropRect, Job
 from app.layout import build_canvas
 
 router = APIRouter()
 
 STORAGE = Path(__file__).parent.parent / "storage"
 STORAGE.mkdir(exist_ok=True)
+
+ABANDON_TTL_SECONDS = 60 * 60  # originals for jobs without a canvas older than this are swept
+
+
+def _cleanup_originals(job: Job) -> None:
+    originals_dir = STORAGE / job.job_id / "originals"
+    if originals_dir.exists():
+        shutil.rmtree(originals_dir, ignore_errors=True)
+    job.images = {}
+    save_job(job)
+
+
+def _sweep_abandoned() -> None:
+    now = time.time()
+    for job in list(all_jobs()):
+        if job.canvas_path is None and job.images and now - job.created_at > ABANDON_TTL_SECONDS:
+            _cleanup_originals(job)
 
 
 def _apply_crop(img: Image.Image, crop: CropRect) -> Image.Image:
@@ -33,6 +52,7 @@ def _apply_crop(img: Image.Image, crop: CropRect) -> Image.Image:
 
 @router.post("/upload")
 async def upload_images(files: list[UploadFile] = File(...)):
+    _sweep_abandoned()
     job = create_job()
     job_dir = STORAGE / job.job_id / "originals"
     job_dir.mkdir(parents=True, exist_ok=True)
@@ -57,32 +77,39 @@ def generate(job_id: str, req: GenerateRequest):
     if job is None:
         raise HTTPException(404, "Job not found")
 
-    images: list[Image.Image] = []
-    for image_id in req.image_ids:
-        img_path = job.images.get(image_id)
-        if img_path is None:
-            raise HTTPException(400, f"Unknown image_id: {image_id}")
-        with Image.open(img_path) as img:
-            img.load()
-            rgb = img.convert("RGB")
-        crop = req.crops.get(image_id)
-        if crop is not None:
-            rgb = _apply_crop(rgb, crop)
-        images.append(rgb)
-
     try:
-        canvas = build_canvas(images)
-    except Exception as e:
-        raise HTTPException(500, f"Layout failed: {e}")
+        images: list[Image.Image] = []
+        for image_id in req.image_ids:
+            img_path = job.images.get(image_id)
+            if img_path is None:
+                raise HTTPException(400, f"Unknown image_id: {image_id}")
+            with Image.open(img_path) as img:
+                img.load()
+                rgb = img.convert("RGB")
+            crop = req.crops.get(image_id)
+            if crop is not None:
+                rgb = _apply_crop(rgb, crop)
+            images.append(rgb)
 
-    out_dir = STORAGE / job_id
-    out_dir.mkdir(exist_ok=True)
-    canvas_path = out_dir / "canvas.png"
-    canvas.save(str(canvas_path), format="PNG", optimize=True)
+        try:
+            canvas = build_canvas(images)
+        except Exception as e:
+            raise HTTPException(500, f"Layout failed: {e}")
 
-    job.canvas_path = str(canvas_path)
-    job.status = "done"
-    save_job(job)
+        out_dir = STORAGE / job_id
+        out_dir.mkdir(exist_ok=True)
+        canvas_path = out_dir / "canvas.png"
+        canvas.save(str(canvas_path), format="PNG", optimize=True)
+
+        job.canvas_path = str(canvas_path)
+        job.status = "done"
+        save_job(job)
+    except Exception:
+        job.status = "error"
+        _cleanup_originals(job)
+        raise
+    else:
+        _cleanup_originals(job)
 
     return {"canvas_url": f"/jobs/{job_id}/canvas.png"}
 

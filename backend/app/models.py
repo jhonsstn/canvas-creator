@@ -1,4 +1,5 @@
 from __future__ import annotations
+import time
 from typing import Optional
 from pydantic import BaseModel, Field
 
@@ -26,3 +27,4 @@ class Job(BaseModel):
     canvas_path: Optional[str] = None
     status: str = "pending"  # pending | done | error
     error: Optional[str] = None
+    created_at: float = Field(default_factory=time.time)
