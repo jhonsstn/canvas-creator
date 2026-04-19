@@ -8,7 +8,7 @@ PAIR_GAP = 80              # gap between reference and drawing block
 COL_GAP = 200              # gap between the two pair columns
 ROW_GAP = 320              # vertical gap between rows
 OUTER_PAD = 80             # canvas outer margin
-MIN_CANVAS_SIZE = 4000     # enforce at least 4000x4000
+CANVAS_WIDTH = 4000        # fixed canvas width; height scales with rows
 N_COLS = 2                 # number of ref+draw pairs per row
 
 
@@ -26,7 +26,7 @@ def build_canvas(images: list[Image.Image]) -> Image.Image:
     Row layout: [ ref | draw(1.5×) || ref | draw(1.5×) ]
     """
     if not images:
-        return Image.new("RGB", (MIN_CANVAS_SIZE, MIN_CANVAS_SIZE), "white")
+        return Image.new("RGB", (CANVAS_WIDTH, CANVAS_WIDTH), "white")
 
     fitted = [_fit_to_height(img, CELL_HEIGHT) for img in images]
 
@@ -43,14 +43,12 @@ def build_canvas(images: list[Image.Image]) -> Image.Image:
     pair_w = ref_w + PAIR_GAP + draw_w
     row_h = max(ref_block_h, draw_h)
 
-    canvas_w = OUTER_PAD * 2 + pair_w * N_COLS + COL_GAP * (N_COLS - 1)
-    canvas_h = OUTER_PAD * 2 + len(rows) * row_h + ROW_GAP * (len(rows) - 1)
+    natural_w = OUTER_PAD * 2 + pair_w * N_COLS + COL_GAP * (N_COLS - 1)
+    natural_h = OUTER_PAD * 2 + len(rows) * row_h + ROW_GAP * (len(rows) - 1)
 
-    scale = 1.0
-    if canvas_w < MIN_CANVAS_SIZE or canvas_h < MIN_CANVAS_SIZE:
-        scale = max(MIN_CANVAS_SIZE / canvas_w, MIN_CANVAS_SIZE / canvas_h)
-        canvas_w = int(canvas_w * scale)
-        canvas_h = int(canvas_h * scale)
+    scale = CANVAS_WIDTH / natural_w
+    canvas_w = CANVAS_WIDTH
+    canvas_h = int(natural_h * scale)
 
     canvas = Image.new("RGB", (canvas_w, canvas_h), "white")
 
