@@ -80,6 +80,9 @@ export default function App() {
         crops
       );
       setCanvasUrl(url + "?t=" + Date.now());
+      setRows([]);
+      setCrops({});
+      setJobId(null);
     } catch (e: unknown) {
       setError(String(e));
     } finally {
