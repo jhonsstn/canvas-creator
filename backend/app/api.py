@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from fastapi.responses import FileResponse, Response
 from PIL import Image
 
-from app.jobs import all_jobs, create_job, get_job, save_job
+from app.jobs import all_jobs, create_job, get_job, save_job, delete_job
 from app.models import GenerateRequest, CropRect, Job
 from app.layout import build_canvas
 
@@ -18,6 +18,39 @@ router = APIRouter()
 
 STORAGE = Path(__file__).parent.parent / "storage"
 STORAGE.mkdir(exist_ok=True)
+
+
+@router.get("/jobs")
+def list_jobs():
+    jobs = [
+        {
+            "job_id": j.job_id,
+            "created_at": j.created_at,
+            "status": j.status,
+            "has_canvas": j.canvas_path is not None,
+        }
+        for j in all_jobs()
+        if j.canvas_path is not None
+    ]
+    # Sort by newest first
+    jobs.sort(key=lambda x: x["created_at"], reverse=True)
+    return jobs
+
+
+@router.delete("/jobs/{job_id}")
+def remove_job(job_id: str):
+    job = get_job(job_id)
+    if job is None:
+        raise HTTPException(404, "Job not found")
+
+    # Delete physical files
+    job_dir = STORAGE / job_id
+    if job_dir.exists():
+        shutil.rmtree(job_dir, ignore_errors=True)
+
+    # Remove from store
+    delete_job(job_id)
+    return {"success": True}
 
 ABANDON_TTL_SECONDS = 60 * 60  # originals for jobs without a canvas older than this are swept
 

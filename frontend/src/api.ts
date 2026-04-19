@@ -41,6 +41,24 @@ export async function generateCanvas(
   return `${BASE}${data.canvas_url}`;
 }
 
+export interface JobRecord {
+  job_id: string;
+  created_at: number;
+  status: string;
+  has_canvas: boolean;
+}
+
+export async function getJobs(): Promise<JobRecord[]> {
+  const res = await fetch(`${BASE}/jobs`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function deleteJob(jobId: string): Promise<void> {
+  const res = await fetch(`${BASE}/jobs/${jobId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(await res.text());
+}
+
 export function thumbUrl(
   jobId: string,
   imageId: string,

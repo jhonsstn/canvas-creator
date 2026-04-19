@@ -41,23 +41,19 @@ export default function CropDialog({
 }: Props) {
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const [aspect, setAspect] = useState<AspectOption>("free");
-  const [aspectInitialized, setAspectInitialized] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [areaPixels, setAreaPixels] = useState<Area | null>(null);
 
   useEffect(() => {
     const img = new Image();
-    img.onload = () => setNatural({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onload = () => {
+      const nat = { w: img.naturalWidth, h: img.naturalHeight };
+      setNatural(nat);
+      setAspect(inferAspect(initialCrop, nat));
+    };
     img.src = imageUrl;
-  }, [imageUrl]);
-
-  useEffect(() => {
-    if (!aspectInitialized && natural) {
-      setAspect(inferAspect(initialCrop, natural));
-      setAspectInitialized(true);
-    }
-  }, [natural, initialCrop, aspectInitialized]);
+  }, [imageUrl, initialCrop]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -122,7 +118,7 @@ export default function CropDialog({
         </div>
 
         <div className="crop-area">
-          {natural && aspectInitialized && (
+          {natural && (
             <Cropper
               key={imageUrl}
               image={imageUrl}
