@@ -21,6 +21,7 @@ def _fit_to_height(img: Image.Image, target_h: int) -> Image.Image:
 def build_canvas(
     images: list[Image.Image],
     scales: list[float] | None = None,
+    canvas_width_scale: float = 1.0,
 ) -> Image.Image:
     """
     2-column grid. Each cell = reference block (image + 0.5× blank below)
@@ -30,8 +31,10 @@ def build_canvas(
     block grows proportionally because it is derived from the reference's
     rendered width.
     """
+    canvas_width = max(1, int(CANVAS_WIDTH * canvas_width_scale))
+
     if not images:
-        return Image.new("RGB", (CANVAS_WIDTH, CANVAS_WIDTH), "white")
+        return Image.new("RGB", (canvas_width, canvas_width), "white")
 
     if scales is None or len(scales) != len(images):
         scales = [1.0] * len(images)
@@ -58,8 +61,8 @@ def build_canvas(
     natural_w = OUTER_PAD * 2 + row_pair_w_max * N_COLS + COL_GAP * (N_COLS - 1)
     natural_h = OUTER_PAD * 2 + sum(row_hs) + ROW_GAP * (len(row_indices) - 1)
 
-    scale = CANVAS_WIDTH / natural_w
-    canvas_w = CANVAS_WIDTH
+    scale = canvas_width / natural_w
+    canvas_w = canvas_width
     canvas_h = int(natural_h * scale)
 
     canvas = Image.new("RGB", (canvas_w, canvas_h), "white")

@@ -137,9 +137,13 @@ def generate(job_id: str, req: GenerateRequest):
             else req.scales.get(image_id, 1.0)
             for image_id in req.image_ids
         ]
+        canvas_width_scale = (
+            req.global_scale if req.global_scale is not None
+            else max(scales, default=1.0)
+        )
 
         try:
-            canvas = build_canvas(images, scales)
+            canvas = build_canvas(images, scales, canvas_width_scale)
         except Exception as e:
             raise HTTPException(500, f"Layout failed: {e}")
 
