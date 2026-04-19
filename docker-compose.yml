@@ -4,6 +4,7 @@ services:
     container_name: canvas_creator_backend
     volumes:
       - canvas_storage:/app/storage
+      - canvas_db:/app/db
     networks:
       - canvas_net
     restart: unless-stopped
@@ -31,3 +32,4 @@ networks:
 
 volumes:
   canvas_storage:
+  canvas_db:

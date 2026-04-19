@@ -9,7 +9,7 @@ RUN uv sync --frozen --no-dev
 
 COPY app ./app
 
-RUN mkdir -p /app/storage
+RUN mkdir -p /app/storage /app/db
 
 EXPOSE 8000
 
