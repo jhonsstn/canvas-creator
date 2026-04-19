@@ -19,6 +19,13 @@ router = APIRouter()
 STORAGE = Path(__file__).parent.parent / "storage"
 STORAGE.mkdir(exist_ok=True)
 
+_START_TIME = time.time()
+
+
+@router.get("/health")
+def health():
+    return {"status": "ok", "uptime": round(time.time() - _START_TIME)}
+
 
 @router.get("/jobs")
 def list_jobs():

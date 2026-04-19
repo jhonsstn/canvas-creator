@@ -54,6 +54,15 @@ export async function getJobs(): Promise<JobRecord[]> {
   return res.json();
 }
 
+export async function checkHealth(): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/health`, { signal: AbortSignal.timeout(4000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function deleteJob(jobId: string): Promise<void> {
   const res = await fetch(`${BASE}/jobs/${jobId}`, { method: "DELETE" });
   if (!res.ok) throw new Error(await res.text());

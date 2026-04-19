@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { Routes, Route, NavLink } from "react-router-dom";
 import Creator from "./pages/Creator";
 import Gallery from "./pages/Gallery";
+import { checkHealth } from "./api";
 import "./App.css";
 
 const TODAY = new Date()
@@ -12,6 +14,15 @@ const TODAY = new Date()
   .toUpperCase();
 
 export default function App() {
+  const [apiOnline, setApiOnline] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const ping = () => checkHealth().then(setApiOnline);
+    ping();
+    const id = setInterval(ping, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <div className="app">
       <header>
@@ -35,6 +46,10 @@ export default function App() {
         <div className="meta">
           <div><strong>{TODAY}</strong></div>
           <div>EST. 2026</div>
+          <div className={`api-status ${apiOnline === null ? "checking" : apiOnline ? "online" : "offline"}`}>
+            <span className="api-status-dot" />
+            {apiOnline === null ? "CHECKING" : apiOnline ? "API ONLINE" : "API OFFLINE"}
+          </div>
         </div>
       </header>
 

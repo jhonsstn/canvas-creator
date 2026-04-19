@@ -407,6 +407,26 @@ header .subtitle {
   font-weight: 500;
 }
 
+.api-status {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  margin-top: 0.5em;
+}
+
+.api-status-dot {
+  display: inline-block;
+  width: 0.45em;
+  height: 0.45em;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.api-status.online  { color: #4e7d3a; }
+.api-status.offline { color: var(--drafting); }
+.api-status.checking { color: var(--ink-muted); }
+
 /* ——— SECTION LABELS ——— */
 .section-label {
   display: flex;
