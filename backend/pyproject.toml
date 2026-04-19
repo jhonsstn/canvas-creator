@@ -7,8 +7,6 @@ dependencies = [
     "uvicorn[standard]>=0.32.0",
     "python-multipart>=0.0.12",
     "pillow>=11.0.0",
-    "mediapipe>=0.10.14",
-    "opencv-python-headless>=4.10.0",
 ]
 
 [build-system]

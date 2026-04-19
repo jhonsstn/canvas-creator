@@ -1,0 +1,25 @@
+services:
+  backend:
+    build: ./backend
+    volumes:
+      - canvas_storage:/app/storage
+    networks:
+      - canvas_net
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - backend
+    networks:
+      - canvas_net
+    restart: unless-stopped
+
+networks:
+  canvas_net:
+    driver: bridge
+
+volumes:
+  canvas_storage:

@@ -12,8 +12,9 @@ const TODAY = new Date()
   })
   .toUpperCase();
 
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 const ORIGINAL_URL = (jobId: string, imageId: string) =>
-  `http://localhost:8000/jobs/${jobId}/original/${imageId}`;
+  `${API_BASE}/jobs/${jobId}/original/${imageId}`;
 
 export default function App() {
   const [jobId, setJobId] = useState<string | null>(null);
