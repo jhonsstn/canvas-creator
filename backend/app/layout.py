@@ -4,7 +4,7 @@ from PIL import Image
 CELL_HEIGHT = 800          # px — each image/drawing cell height
 PAIR_GAP = 80              # gap between an image and its drawing blank
 COL_GAP = 200              # gap between the two image+blank columns
-ROW_GAP = 160              # vertical gap between rows
+ROW_GAP = 320              # vertical gap between rows
 OUTER_PAD = 80             # canvas outer margin
 MIN_CANVAS_SIZE = 4000     # enforce at least 4000x4000
 N_COLS = 2                 # number of image+blank pairs per row
