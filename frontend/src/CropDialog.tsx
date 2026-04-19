@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import type { CropRect } from "./api";
@@ -10,6 +10,17 @@ const ASPECT_VALUES: Record<AspectOption, number | undefined> = {
   "1:1": 1,
   "3:4": 3 / 4,
 };
+
+function inferAspect(
+  crop: CropRect | undefined,
+  nat: { w: number; h: number } | null
+): AspectOption {
+  if (!crop || !nat) return "free";
+  const ratio = (crop.w * nat.w) / (crop.h * nat.h);
+  if (Math.abs(ratio - 1) < 0.02) return "1:1";
+  if (Math.abs(ratio - 3 / 4) < 0.02) return "3:4";
+  return "free";
+}
 
 interface Props {
   imageUrl: string;
@@ -28,17 +39,25 @@ export default function CropDialog({
   onSave,
   onClose,
 }: Props) {
+  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const [aspect, setAspect] = useState<AspectOption>("free");
+  const [aspectInitialized, setAspectInitialized] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [areaPixels, setAreaPixels] = useState<Area | null>(null);
-  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
 
   useEffect(() => {
     const img = new Image();
     img.onload = () => setNatural({ w: img.naturalWidth, h: img.naturalHeight });
     img.src = imageUrl;
   }, [imageUrl]);
+
+  useEffect(() => {
+    if (!aspectInitialized && natural) {
+      setAspect(inferAspect(initialCrop, natural));
+      setAspectInitialized(true);
+    }
+  }, [natural, initialCrop, aspectInitialized]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -53,15 +72,15 @@ export default function CropDialog({
     []
   );
 
-  const initialAreaPixels: Area | undefined =
-    initialCrop && natural
-      ? {
-          x: initialCrop.x * natural.w,
-          y: initialCrop.y * natural.h,
-          width: initialCrop.w * natural.w,
-          height: initialCrop.h * natural.h,
-        }
-      : undefined;
+  const initialAreaPixels: Area | undefined = useMemo(() => {
+    if (!initialCrop || !natural) return undefined;
+    return {
+      x: initialCrop.x * natural.w,
+      y: initialCrop.y * natural.h,
+      width: initialCrop.w * natural.w,
+      height: initialCrop.h * natural.h,
+    };
+  }, [initialCrop, natural]);
 
   const handleSave = () => {
     if (!areaPixels || !natural) return;
@@ -103,23 +122,26 @@ export default function CropDialog({
         </div>
 
         <div className="crop-area">
-          <Cropper
-            image={imageUrl}
-            crop={crop}
-            zoom={zoom}
-            aspect={ASPECT_VALUES[aspect]}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onCropComplete={onCropComplete}
-            initialCroppedAreaPixels={initialAreaPixels}
-            restrictPosition={true}
-            objectFit="contain"
-            classes={{
-              containerClassName: "rec-container",
-              mediaClassName: "rec-media",
-              cropAreaClassName: "rec-area",
-            }}
-          />
+          {natural && aspectInitialized && (
+            <Cropper
+              key={imageUrl}
+              image={imageUrl}
+              crop={crop}
+              zoom={zoom}
+              aspect={ASPECT_VALUES[aspect]}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropComplete}
+              initialCroppedAreaPixels={initialAreaPixels}
+              restrictPosition={true}
+              objectFit="contain"
+              classes={{
+                containerClassName: "rec-container",
+                mediaClassName: "rec-media",
+                cropAreaClassName: "rec-area",
+              }}
+            />
+          )}
         </div>
 
         <footer className="crop-actions">
