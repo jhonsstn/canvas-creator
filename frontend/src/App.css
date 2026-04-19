@@ -1051,6 +1051,56 @@ header { animation-delay: 0.05s; }
   border-color: var(--ink);
 }
 
+.danger-btn {
+  appearance: none;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--drafting);
+  border: 1px solid var(--drafting);
+  padding: 1rem 2.25rem;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.danger-btn:hover {
+  background: var(--drafting-deep);
+  border-color: var(--drafting-deep);
+  transform: translateY(-1px);
+}
+
+.dialog-body {
+  padding: 0.5rem 0;
+}
+
+.dialog-body p {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.dialog-body strong {
+  color: var(--drafting);
+  font-weight: 400;
+}
+
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
 /* ——— RESPONSIVE ——— */
 @media (max-width: 640px) {
   .app { padding: 2rem 1.25rem 4rem; gap: 2rem; }

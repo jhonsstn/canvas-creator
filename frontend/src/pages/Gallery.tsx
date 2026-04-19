@@ -9,6 +9,7 @@ export default function Gallery() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -26,13 +27,15 @@ export default function Gallery() {
     return () => { mounted = false; };
   }, []);
 
-  const handleDelete = async (jobId: string) => {
-    if (!confirm("Are you sure you want to delete this canvas?")) return;
+  const handleDelete = async () => {
+    if (!deletingId) return;
     try {
-      await deleteJob(jobId);
-      setJobs((prev) => prev.filter((j) => j.job_id !== jobId));
+      await deleteJob(deletingId);
+      setJobs((prev) => prev.filter((j) => j.job_id !== deletingId));
+      setDeletingId(null);
     } catch (e: unknown) {
-      alert(String(e));
+      setError(String(e));
+      setDeletingId(null);
     }
   };
 
@@ -90,7 +93,7 @@ export default function Gallery() {
                   </a>
                   <button
                     className="gallery-action-btn delete"
-                    onClick={() => handleDelete(job.job_id)}
+                    onClick={() => setDeletingId(job.job_id)}
                     title="Delete permanently"
                   >
                     ×
@@ -99,6 +102,32 @@ export default function Gallery() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {deletingId && (
+        <div className="crop-dialog-backdrop" onMouseDown={() => setDeletingId(null)}>
+          <div className="crop-dialog" style={{ width: "min(480px, 100%)" }} onMouseDown={(e) => e.stopPropagation()}>
+            <header className="crop-dialog-header">
+              <div>
+                <div className="eyebrow">Irreversible Action</div>
+                <h2>Delete Archive</h2>
+              </div>
+            </header>
+            <div className="dialog-body">
+              <p>
+                Are you sure you want to delete this sheet? This will <strong>permanently remove</strong> the canvas and all its associated source references from the archive.
+              </p>
+            </div>
+            <footer className="dialog-actions">
+              <button className="ghost-btn" onClick={() => setDeletingId(null)}>
+                Cancel
+              </button>
+              <button className="danger-btn" onClick={handleDelete}>
+                Delete permanently
+              </button>
+            </footer>
+          </div>
         </div>
       )}
 
