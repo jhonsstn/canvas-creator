@@ -2,19 +2,33 @@ from __future__ import annotations
 import io
 import uuid
 from pathlib import Path
+from typing import Optional
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from fastapi.responses import FileResponse, Response
 from PIL import Image
 
 from app.jobs import create_job, get_job, save_job
-from app.models import GenerateRequest
+from app.models import GenerateRequest, CropRect
 from app.layout import build_canvas
 
 router = APIRouter()
 
 STORAGE = Path(__file__).parent.parent / "storage"
 STORAGE.mkdir(exist_ok=True)
+
+
+def _apply_crop(img: Image.Image, crop: CropRect) -> Image.Image:
+    iw, ih = img.size
+    left = int(round(crop.x * iw))
+    top = int(round(crop.y * ih))
+    right = int(round((crop.x + crop.w) * iw))
+    bottom = int(round((crop.y + crop.h) * ih))
+    left = max(0, min(left, iw - 1))
+    top = max(0, min(top, ih - 1))
+    right = max(left + 1, min(right, iw))
+    bottom = max(top + 1, min(bottom, ih))
+    return img.crop((left, top, right, bottom))
 
 
 @router.post("/upload")
@@ -50,7 +64,11 @@ def generate(job_id: str, req: GenerateRequest):
             raise HTTPException(400, f"Unknown image_id: {image_id}")
         with Image.open(img_path) as img:
             img.load()
-            images.append(img.convert("RGB"))
+            rgb = img.convert("RGB")
+        crop = req.crops.get(image_id)
+        if crop is not None:
+            rgb = _apply_crop(rgb, crop)
+        images.append(rgb)
 
     try:
         canvas = build_canvas(images)
@@ -77,8 +95,26 @@ async def get_canvas(job_id: str):
     return FileResponse(job.canvas_path, media_type="image/png")
 
 
+@router.get("/jobs/{job_id}/original/{image_id}")
+def get_original(job_id: str, image_id: str):
+    job = get_job(job_id)
+    if job is None:
+        raise HTTPException(404, "Job not found")
+    img_path = job.images.get(image_id)
+    if img_path is None:
+        raise HTTPException(404, "Image not found")
+    return FileResponse(img_path)
+
+
 @router.get("/jobs/{job_id}/thumb/{image_id}")
-def get_thumb(job_id: str, image_id: str):
+def get_thumb(
+    job_id: str,
+    image_id: str,
+    x: Optional[float] = Query(None, ge=0.0, le=1.0),
+    y: Optional[float] = Query(None, ge=0.0, le=1.0),
+    w: Optional[float] = Query(None, gt=0.0, le=1.0),
+    h: Optional[float] = Query(None, gt=0.0, le=1.0),
+):
     job = get_job(job_id)
     if job is None:
         raise HTTPException(404, "Job not found")
@@ -88,6 +124,10 @@ def get_thumb(job_id: str, image_id: str):
 
     buf = io.BytesIO()
     with Image.open(img_path) as img:
-        img.thumbnail((256, 256))
-        img.convert("RGB").save(buf, format="JPEG", quality=80)
+        img.load()
+        rgb = img.convert("RGB")
+        if None not in (x, y, w, h):
+            rgb = _apply_crop(rgb, CropRect(x=x, y=y, w=w, h=h))
+        rgb.thumbnail((256, 256))
+        rgb.save(buf, format="JPEG", quality=80)
     return Response(content=buf.getvalue(), media_type="image/jpeg")

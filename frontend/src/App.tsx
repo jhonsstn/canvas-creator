@@ -1,17 +1,25 @@
 import { useCallback, useRef, useState } from "react";
-import type { UploadedImage } from "./api";
+import type { CropRect, UploadedImage } from "./api";
 import { generateCanvas, thumbUrl, uploadImages } from "./api";
+import CropDialog from "./CropDialog";
 import "./App.css";
 
-const TODAY = new Date().toLocaleDateString("en-GB", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-}).toUpperCase();
+const TODAY = new Date()
+  .toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })
+  .toUpperCase();
+
+const ORIGINAL_URL = (jobId: string, imageId: string) =>
+  `http://localhost:8000/jobs/${jobId}/original/${imageId}`;
 
 export default function App() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [rows, setRows] = useState<UploadedImage[]>([]);
+  const [crops, setCrops] = useState<Record<string, CropRect>>({});
+  const [editing, setEditing] = useState<{ row: UploadedImage; index: number } | null>(null);
   const [canvasUrl, setCanvasUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +59,11 @@ export default function App() {
 
   const removeRow = (id: string) => {
     setRows((prev) => prev.filter((r) => r.image_id !== id));
+    setCrops((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   const handleGenerate = async () => {
@@ -59,13 +72,29 @@ export default function App() {
     setError(null);
     setCanvasUrl(null);
     try {
-      const url = await generateCanvas(jobId, rows.map((r) => r.image_id));
+      const url = await generateCanvas(
+        jobId,
+        rows.map((r) => r.image_id),
+        crops
+      );
       setCanvasUrl(url + "?t=" + Date.now());
     } catch (e: unknown) {
       setError(String(e));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveCrop = (crop: CropRect | null) => {
+    if (!editing) return;
+    const id = editing.row.image_id;
+    setCrops((prev) => {
+      const next = { ...prev };
+      if (crop) next[id] = crop;
+      else delete next[id];
+      return next;
+    });
+    setEditing(null);
   };
 
   const count = rows.length;
@@ -80,8 +109,7 @@ export default function App() {
             Canvas <em>Creator</em>
           </h1>
           <p className="subtitle">
-            A quiet little workbench for arranging references
-            onto a single drawing sheet.
+            A quiet little workbench for arranging references onto a single drawing sheet.
           </p>
         </div>
         <div className="meta">
@@ -128,28 +156,38 @@ export default function App() {
           </div>
 
           <div className="plates">
-            {rows.map((row, idx) => (
-              <div key={row.image_id} className="plate" style={{ animationDelay: `${idx * 40}ms` }}>
-                <span className="plate-index">№ {String(idx + 1).padStart(2, "0")}</span>
-                <div className="thumb-wrap">
-                  <img
-                    src={thumbUrl(row.job_id, row.image_id)}
-                    alt={row.filename}
-                    className="thumb"
-                  />
-                </div>
-                <div className="plate-foot">
-                  <span className="filename" title={row.filename}>{row.filename}</span>
+            {rows.map((row, idx) => {
+              const crop = crops[row.image_id];
+              return (
+                <div key={row.image_id} className="plate" style={{ animationDelay: `${idx * 40}ms` }}>
+                  <span className="plate-index">№ {String(idx + 1).padStart(2, "0")}</span>
                   <button
-                    className="remove-btn"
-                    onClick={() => removeRow(row.image_id)}
-                    aria-label="Remove"
+                    type="button"
+                    className="thumb-btn"
+                    onClick={() => setEditing({ row, index: idx + 1 })}
+                    aria-label="Edit crop"
                   >
-                    ×
+                    <img
+                      src={thumbUrl(row.job_id, row.image_id, crop)}
+                      alt={row.filename}
+                      className="thumb"
+                    />
+                    <span className="thumb-hint">Click · Crop</span>
                   </button>
+                  <div className="plate-foot">
+                    <span className="filename" title={row.filename}>{row.filename}</span>
+                    {crop && <span className="plate-badge">Cropped</span>}
+                    <button
+                      className="remove-btn"
+                      onClick={() => removeRow(row.image_id)}
+                      aria-label="Remove"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="generate-bar">
@@ -188,6 +226,17 @@ export default function App() {
           </div>
           <p className="caption">Reference sheet, composed {TODAY.toLowerCase()}.</p>
         </section>
+      )}
+
+      {editing && (
+        <CropDialog
+          imageUrl={ORIGINAL_URL(editing.row.job_id, editing.row.image_id)}
+          filename={editing.row.filename}
+          indexLabel={`№ ${String(editing.index).padStart(2, "0")}`}
+          initialCrop={crops[editing.row.image_id]}
+          onSave={handleSaveCrop}
+          onClose={() => setEditing(null)}
+        />
       )}
     </div>
   );

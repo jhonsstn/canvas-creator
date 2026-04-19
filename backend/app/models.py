@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ImageMeta(BaseModel):
@@ -8,8 +8,16 @@ class ImageMeta(BaseModel):
     filename: str
 
 
+class CropRect(BaseModel):
+    x: float = Field(ge=0.0, le=1.0)
+    y: float = Field(ge=0.0, le=1.0)
+    w: float = Field(gt=0.0, le=1.0)
+    h: float = Field(gt=0.0, le=1.0)
+
+
 class GenerateRequest(BaseModel):
     image_ids: list[str]
+    crops: dict[str, CropRect] = {}
 
 
 class Job(BaseModel):

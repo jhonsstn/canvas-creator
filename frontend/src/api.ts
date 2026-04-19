@@ -11,6 +11,13 @@ export interface UploadResponse {
   images: UploadedImage[];
 }
 
+export interface CropRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export async function uploadImages(files: File[]): Promise<UploadResponse> {
   const fd = new FormData();
   for (const f of files) fd.append("files", f);
@@ -21,18 +28,31 @@ export async function uploadImages(files: File[]): Promise<UploadResponse> {
 
 export async function generateCanvas(
   jobId: string,
-  imageIds: string[]
+  imageIds: string[],
+  crops: Record<string, CropRect> = {}
 ): Promise<string> {
   const res = await fetch(`${BASE}/jobs/${jobId}/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image_ids: imageIds }),
+    body: JSON.stringify({ image_ids: imageIds, crops }),
   });
   if (!res.ok) throw new Error(await res.text());
   const data = await res.json();
   return `${BASE}${data.canvas_url}`;
 }
 
-export function thumbUrl(jobId: string, imageId: string): string {
-  return `${BASE}/jobs/${jobId}/thumb/${imageId}`;
+export function thumbUrl(
+  jobId: string,
+  imageId: string,
+  crop?: CropRect
+): string {
+  const base = `${BASE}/jobs/${jobId}/thumb/${imageId}`;
+  if (!crop) return base;
+  const q = new URLSearchParams({
+    x: String(crop.x),
+    y: String(crop.y),
+    w: String(crop.w),
+    h: String(crop.h),
+  });
+  return `${base}?${q.toString()}`;
 }

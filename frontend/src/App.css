@@ -548,6 +548,248 @@ header { animation-delay: 0.05s; }
   animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+/* ——— THUMB BUTTON ——— */
+.thumb-btn {
+  position: relative;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.thumb-btn:hover {
+  border-color: var(--drafting);
+}
+
+.thumb-btn .thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: contrast(1.02);
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1), filter 0.25s;
+}
+
+.thumb-btn:hover .thumb {
+  transform: scale(1.03);
+  filter: contrast(1.02) brightness(0.85);
+}
+
+.thumb-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: linear-gradient(180deg, rgba(20, 18, 16, 0) 40%, rgba(20, 18, 16, 0.55) 100%);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+
+.thumb-btn:hover .thumb-hint,
+.thumb-btn:focus-visible .thumb-hint {
+  opacity: 1;
+}
+
+/* Replace old .thumb-wrap rules — .thumb-btn replaces .thumb-wrap wrapper */
+.plate .thumb-wrap { /* kept for backwards compat if referenced */
+  aspect-ratio: 4 / 3;
+}
+
+.plate-badge {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--drafting);
+  border: 1px solid var(--drafting);
+  padding: 0.15rem 0.4rem;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+/* ——— CROP DIALOG ——— */
+.crop-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: rgba(20, 18, 16, 0.45);
+  backdrop-filter: blur(8px) saturate(1.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
+  animation: fade 0.25s ease-out both;
+}
+
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+.crop-dialog {
+  position: relative;
+  width: min(960px, 100%);
+  max-height: calc(100vh - 4rem);
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: 0 40px 80px -20px rgba(20, 18, 16, 0.4);
+  animation: rise 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.crop-dialog::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--hairline);
+  pointer-events: none;
+}
+
+.crop-dialog-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.crop-dialog-header h2 {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 1.8rem;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-top: 0.35rem;
+}
+
+.crop-filename {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.05em;
+  max-width: 40ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aspect-radios {
+  display: inline-flex;
+  align-self: flex-start;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.aspect-radio {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--hairline);
+  padding: 0.55rem 1.1rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.aspect-radio:last-child { border-right: 0; }
+
+.aspect-radio:hover {
+  color: var(--ink);
+  background: rgba(20, 18, 16, 0.04);
+}
+
+.aspect-radio.selected {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.crop-area {
+  position: relative;
+  width: 100%;
+  height: min(60vh, 520px);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+}
+
+.crop-area .rec-container { background: var(--paper); }
+.crop-area .rec-area {
+  border: 1px solid var(--drafting) !important;
+  color: rgba(20, 18, 16, 0.55) !important;
+}
+
+.crop-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 0.5rem;
+}
+
+.link-btn {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0.5rem 0.25rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--hairline);
+  margin-right: auto;
+}
+
+.link-btn:hover {
+  color: var(--drafting);
+  text-decoration-color: var(--drafting);
+}
+
+.ghost-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--rule);
+  padding: 1rem 1.75rem;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.25s;
+}
+
+.ghost-btn:hover {
+  background: var(--paper);
+  border-color: var(--ink);
+}
+
 /* ——— RESPONSIVE ——— */
 @media (max-width: 640px) {
   .app { padding: 2rem 1.25rem 4rem; gap: 2rem; }
