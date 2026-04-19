@@ -26,15 +26,26 @@ export async function uploadImages(files: File[]): Promise<UploadResponse> {
   return res.json();
 }
 
+export const SCALE_PRESETS = [0.75, 1, 1.5, 2] as const;
+export type ScalePreset = (typeof SCALE_PRESETS)[number];
+
 export async function generateCanvas(
   jobId: string,
   imageIds: string[],
-  crops: Record<string, CropRect> = {}
+  crops: Record<string, CropRect> = {},
+  scales: Record<string, number> = {},
+  globalScale: number | null = null
 ): Promise<string> {
+  const body: Record<string, unknown> = {
+    image_ids: imageIds,
+    crops,
+    scales,
+  };
+  if (globalScale !== null) body.global_scale = globalScale;
   const res = await fetch(`${BASE}/jobs/${jobId}/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image_ids: imageIds, crops }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await res.text());
   const data = await res.json();

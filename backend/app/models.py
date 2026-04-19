@@ -19,6 +19,8 @@ class CropRect(BaseModel):
 class GenerateRequest(BaseModel):
     image_ids: list[str]
     crops: dict[str, CropRect] = {}
+    scales: dict[str, float] = {}
+    global_scale: Optional[float] = None
 
 
 class Job(BaseModel):

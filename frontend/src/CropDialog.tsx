@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import type { CropRect } from "./api";
+import { SCALE_PRESETS } from "./api";
 
 type AspectOption = "free" | "1:1" | "3:4";
 
@@ -27,7 +28,8 @@ interface Props {
   filename: string;
   indexLabel: string;
   initialCrop?: CropRect;
-  onSave: (crop: CropRect | null) => void;
+  initialScale?: number;
+  onSave: (crop: CropRect | null, scale: number) => void;
   onClose: () => void;
 }
 
@@ -36,6 +38,7 @@ export default function CropDialog({
   filename,
   indexLabel,
   initialCrop,
+  initialScale,
   onSave,
   onClose,
 }: Props) {
@@ -44,6 +47,7 @@ export default function CropDialog({
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [areaPixels, setAreaPixels] = useState<Area | null>(null);
+  const [scale, setScale] = useState<number>(initialScale ?? 1);
 
   useEffect(() => {
     const img = new Image();
@@ -86,7 +90,7 @@ export default function CropDialog({
       w: Math.min(1, areaPixels.width / natural.w),
       h: Math.min(1, areaPixels.height / natural.h),
     };
-    onSave(rect);
+    onSave(rect, scale);
   };
 
   return (
@@ -117,6 +121,21 @@ export default function CropDialog({
           ))}
         </div>
 
+        <div className="aspect-radios" role="radiogroup" aria-label="Scale">
+          {SCALE_PRESETS.map((opt) => (
+            <button
+              key={opt}
+              role="radio"
+              aria-checked={scale === opt}
+              className={`aspect-radio${scale === opt ? " selected" : ""}`}
+              onClick={() => setScale(opt)}
+              type="button"
+            >
+              {opt}×
+            </button>
+          ))}
+        </div>
+
         <div className="crop-area">
           {natural && (
             <Cropper
@@ -141,7 +160,7 @@ export default function CropDialog({
         </div>
 
         <footer className="crop-actions">
-          <button className="link-btn" type="button" onClick={() => onSave(null)}>
+          <button className="link-btn" type="button" onClick={() => onSave(null, 1)}>
             Reset
           </button>
           <button className="ghost-btn" type="button" onClick={onClose}>

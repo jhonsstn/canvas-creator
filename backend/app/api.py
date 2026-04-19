@@ -132,8 +132,14 @@ def generate(job_id: str, req: GenerateRequest):
                 rgb = _apply_crop(rgb, crop)
             images.append(rgb)
 
+        scales = [
+            req.global_scale if req.global_scale is not None
+            else req.scales.get(image_id, 1.0)
+            for image_id in req.image_ids
+        ]
+
         try:
-            canvas = build_canvas(images)
+            canvas = build_canvas(images, scales)
         except Exception as e:
             raise HTTPException(500, f"Layout failed: {e}")
 

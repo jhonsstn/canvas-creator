@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { CropRect, UploadedImage } from "../api";
-import { generateCanvas, thumbUrl, uploadImages } from "../api";
+import { generateCanvas, SCALE_PRESETS, thumbUrl, uploadImages } from "../api";
 import CropDialog from "../CropDialog";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
@@ -19,6 +19,8 @@ export default function Creator() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [rows, setRows] = useState<UploadedImage[]>([]);
   const [crops, setCrops] = useState<Record<string, CropRect>>({});
+  const [scales, setScales] = useState<Record<string, number>>({});
+  const [globalScale, setGlobalScale] = useState<number | null>(null);
   const [editing, setEditing] = useState<{ row: UploadedImage; index: number } | null>(null);
   const [canvasUrl, setCanvasUrl] = useState<string | null>(null);
   const [canvasSize, setCanvasSize] = useState<{ w: number; h: number } | null>(null);
@@ -66,6 +68,11 @@ export default function Creator() {
       delete next[id];
       return next;
     });
+    setScales((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   const handleGenerate = async () => {
@@ -77,11 +84,15 @@ export default function Creator() {
       const url = await generateCanvas(
         jobId,
         rows.map((r) => r.image_id),
-        crops
+        crops,
+        scales,
+        globalScale
       );
       setCanvasUrl(url + "?t=" + Date.now());
       setRows([]);
       setCrops({});
+      setScales({});
+      setGlobalScale(null);
       setJobId(null);
     } catch (e: unknown) {
       setError(String(e));
@@ -90,12 +101,18 @@ export default function Creator() {
     }
   };
 
-  const handleSaveCrop = (crop: CropRect | null) => {
+  const handleSaveCrop = (crop: CropRect | null, scale: number) => {
     if (!editing) return;
     const id = editing.row.image_id;
     setCrops((prev) => {
       const next = { ...prev };
       if (crop) next[id] = crop;
+      else delete next[id];
+      return next;
+    });
+    setScales((prev) => {
+      const next = { ...prev };
+      if (scale !== 1) next[id] = scale;
       else delete next[id];
       return next;
     });
@@ -164,6 +181,9 @@ export default function Creator() {
                   <div className="plate-foot">
                     <span className="filename" title={row.filename}>{row.filename}</span>
                     {crop && <span className="plate-badge">Cropped</span>}
+                    {scales[row.image_id] && (
+                      <span className="plate-badge">{scales[row.image_id]}×</span>
+                    )}
                     <button
                       className="remove-btn"
                       onClick={() => removeRow(row.image_id)}
@@ -181,6 +201,22 @@ export default function Creator() {
             <span className="hint">
               Each reference will be paired with a blank drawing cell.
             </span>
+            <label className="scale-override">
+              <span>Scale override</span>
+              <select
+                value={globalScale ?? ""}
+                onChange={(e) =>
+                  setGlobalScale(e.target.value === "" ? null : Number(e.target.value))
+                }
+              >
+                <option value="">Auto (per image)</option>
+                {SCALE_PRESETS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}×
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               className="generate-btn"
               onClick={handleGenerate}
@@ -234,6 +270,7 @@ export default function Creator() {
           filename={editing.row.filename}
           indexLabel={`№ ${String(editing.index).padStart(2, "0")}`}
           initialCrop={crops[editing.row.image_id]}
+          initialScale={scales[editing.row.image_id] ?? 1}
           onSave={handleSaveCrop}
           onClose={() => setEditing(null)}
         />
