@@ -164,6 +164,14 @@
   font-size: 0.65rem;
   letter-spacing: 0.15em;
   color: var(--ink-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+}
+
+.gallery-size {
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
 }
 
 .gallery-actions {

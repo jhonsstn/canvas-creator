@@ -46,6 +46,7 @@ export interface JobRecord {
   created_at: number;
   status: string;
   has_canvas: boolean;
+  canvas_size: [number, number] | null;
 }
 
 export async function getJobs(): Promise<JobRecord[]> {

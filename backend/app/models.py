@@ -25,6 +25,8 @@ class Job(BaseModel):
     job_id: str
     images: dict[str, str] = {}  # image_id -> filepath
     canvas_path: Optional[str] = None
+    canvas_w: Optional[int] = None
+    canvas_h: Optional[int] = None
     status: str = "pending"  # pending | done | error
     error: Optional[str] = None
     created_at: float = Field(default_factory=time.time)

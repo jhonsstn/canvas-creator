@@ -81,7 +81,12 @@ export default function Gallery() {
                 </div>
               </div>
               <div className="gallery-meta">
-                <span className="gallery-date">{formatDate(job.created_at)}</span>
+                <span className="gallery-date">
+                  {formatDate(job.created_at)}
+                  {job.canvas_size && (
+                    <span className="gallery-size">{job.canvas_size[0]} × {job.canvas_size[1]}</span>
+                  )}
+                </span>
                 <div className="gallery-actions">
                   <a
                     href={CANVAS_URL(job.job_id)}

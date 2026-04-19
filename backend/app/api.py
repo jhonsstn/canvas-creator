@@ -35,6 +35,7 @@ def list_jobs():
             "created_at": j.created_at,
             "status": j.status,
             "has_canvas": j.canvas_path is not None,
+            "canvas_size": [j.canvas_w, j.canvas_h] if j.canvas_w and j.canvas_h else None,
         }
         for j in all_jobs()
         if j.canvas_path is not None
@@ -142,6 +143,7 @@ def generate(job_id: str, req: GenerateRequest):
         canvas.save(str(canvas_path), format="PNG", optimize=True)
 
         job.canvas_path = str(canvas_path)
+        job.canvas_w, job.canvas_h = canvas.size
         job.status = "done"
         save_job(job)
     except Exception:
