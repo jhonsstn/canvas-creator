@@ -26,7 +26,7 @@ export async function uploadImages(files: File[]): Promise<UploadResponse> {
   return res.json();
 }
 
-export const SCALE_PRESETS = [0.75, 1, 1.5, 2] as const;
+export const SCALE_PRESETS = [0.75, 1, 1.5, 2, 2.5, 3] as const;
 export type ScalePreset = (typeof SCALE_PRESETS)[number];
 
 export async function generateCanvas(
