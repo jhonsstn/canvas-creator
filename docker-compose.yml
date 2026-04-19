@@ -1,6 +1,7 @@
 services:
   backend:
     build: ./backend
+    container_name: canvas_creator_backend
     volumes:
       - canvas_storage:/app/storage
     networks:
@@ -9,6 +10,7 @@ services:
 
   frontend:
     build: ./frontend
+    container_name: canvas_creator_frontend
     ports:
       - "${FRONTEND_PORT:-8080}:80"
     depends_on:
