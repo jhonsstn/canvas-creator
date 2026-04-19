@@ -21,6 +21,7 @@ export default function App() {
   const [crops, setCrops] = useState<Record<string, CropRect>>({});
   const [editing, setEditing] = useState<{ row: UploadedImage; index: number } | null>(null);
   const [canvasUrl, setCanvasUrl] = useState<string | null>(null);
+  const [canvasSize, setCanvasSize] = useState<{ w: number; h: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -35,6 +36,7 @@ export default function App() {
       setJobId(res.job_id);
       setRows((prev) => [...prev, ...res.images]);
       setCanvasUrl(null);
+      setCanvasSize(null);
     } catch (e: unknown) {
       setError(String(e));
     } finally {
@@ -216,13 +218,26 @@ export default function App() {
             </div>
             <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
               <span className="stamp">№ {String(count).padStart(2, "0")} · {TODAY}</span>
+              {canvasSize && (
+                <span className="stamp dims-stamp">
+                  {canvasSize.w.toLocaleString()} × {canvasSize.h.toLocaleString()} px
+                </span>
+              )}
               <a href={canvasUrl} download="reference-canvas.png" className="download-btn">
                 Download PNG
               </a>
             </div>
           </div>
           <div className="canvas-frame">
-            <img src={canvasUrl} alt="Generated reference canvas" className="canvas-preview" />
+            <img
+              src={canvasUrl}
+              alt="Generated reference canvas"
+              className="canvas-preview"
+              onLoad={(e) => {
+                const el = e.currentTarget;
+                setCanvasSize({ w: el.naturalWidth, h: el.naturalHeight });
+              }}
+            />
           </div>
           <p className="caption">Reference sheet, composed {TODAY.toLowerCase()}.</p>
         </section>

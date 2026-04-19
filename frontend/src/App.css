@@ -521,6 +521,11 @@ header .subtitle {
   margin-top: 0.5rem;
 }
 
+.dims-stamp {
+  color: var(--ink) !important;
+  border-color: var(--rule) !important;
+}
+
 /* ——— EMPTY STATES ——— */
 .empty-hint {
   font-family: var(--serif);
