@@ -106,6 +106,7 @@ export default function CropDialog({
           </span>
         </header>
 
+        <div className="crop-controls-row">
         <div className="aspect-radios" role="radiogroup" aria-label="Aspect ratio">
           {(Object.keys(ASPECT_VALUES) as AspectOption[]).map((opt) => (
             <button
@@ -134,6 +135,7 @@ export default function CropDialog({
               {opt}×
             </button>
           ))}
+        </div>
         </div>
 
         <div className="crop-area">

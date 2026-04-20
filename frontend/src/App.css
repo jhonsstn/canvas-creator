@@ -1001,6 +1001,13 @@ header { animation-delay: 0.05s; }
   white-space: nowrap;
 }
 
+.crop-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
 .aspect-radios {
   display: inline-flex;
   align-self: flex-start;
