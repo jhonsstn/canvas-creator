@@ -48,6 +48,7 @@ export default function CropDialog({
   const [zoom, setZoom] = useState(1);
   const [areaPixels, setAreaPixels] = useState<Area | null>(null);
   const [scale, setScale] = useState<number>(initialScale ?? 1);
+  const [resetNonce, setResetNonce] = useState(0);
 
   useEffect(() => {
     const img = new Image();
@@ -73,14 +74,23 @@ export default function CropDialog({
   );
 
   const initialAreaPixels: Area | undefined = useMemo(() => {
-    if (!initialCrop || !natural) return undefined;
+    if (!initialCrop || !natural || resetNonce > 0) return undefined;
     return {
       x: initialCrop.x * natural.w,
       y: initialCrop.y * natural.h,
       width: initialCrop.w * natural.w,
       height: initialCrop.h * natural.h,
     };
-  }, [initialCrop, natural]);
+  }, [initialCrop, natural, resetNonce]);
+
+  const handleReset = () => {
+    setAspect("free");
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setScale(1);
+    setAreaPixels(null);
+    setResetNonce((n) => n + 1);
+  };
 
   const handleSave = () => {
     if (!areaPixels || !natural) return;
@@ -141,7 +151,7 @@ export default function CropDialog({
         <div className="crop-area">
           {natural && (
             <Cropper
-              key={imageUrl}
+              key={`${imageUrl}:${resetNonce}`}
               image={imageUrl}
               crop={crop}
               zoom={zoom}
@@ -162,7 +172,7 @@ export default function CropDialog({
         </div>
 
         <footer className="crop-actions">
-          <button className="link-btn" type="button" onClick={() => onSave(null, 1)}>
+          <button className="link-btn" type="button" onClick={handleReset}>
             Reset
           </button>
           <button className="ghost-btn" type="button" onClick={onClose}>
