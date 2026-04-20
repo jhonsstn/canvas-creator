@@ -9,6 +9,7 @@ COL_GAP = 200              # gap between the two pair columns
 ROW_GAP = 320              # vertical gap between rows
 OUTER_PAD = 80             # canvas outer margin
 CANVAS_WIDTH = 4000        # fixed canvas width; height scales with rows
+CANVAS_WIDTH_BONUS = 1.2   # multiply final width; extra space is added to drawing columns
 N_COLS = 2                 # number of ref+draw pairs per row
 
 
@@ -62,20 +63,26 @@ def build_canvas(
     natural_h = OUTER_PAD * 2 + sum(row_hs) + ROW_GAP * (len(row_indices) - 1)
 
     scale = canvas_width / natural_w
-    canvas_w = canvas_width
     canvas_h = int(natural_h * scale)
-
-    canvas = Image.new("RGB", (canvas_w, canvas_h), "white")
 
     scaled_col_gap = int(COL_GAP * scale)
     scaled_row_gap = int(ROW_GAP * scale)
     scaled_slot_w = int(row_pair_w_max * scale)
     pad = int(OUTER_PAD * scale)
 
+    # Expand the final canvas width and distribute the bonus into each column
+    # slot so drawing blocks get extra horizontal room without shrinking refs.
+    canvas_w = max(canvas_width, int(canvas_width * CANVAS_WIDTH_BONUS))
+    extra_w = canvas_w - (pad * 2 + scaled_slot_w * N_COLS + scaled_col_gap * (N_COLS - 1))
+    extra_per_col = max(0, extra_w // N_COLS)
+    slot_w = scaled_slot_w + extra_per_col
+
+    canvas = Image.new("RGB", (canvas_w, canvas_h), "white")
+
     y = pad
     for r, row in enumerate(row_indices):
         for col_idx, i in enumerate(row):
-            slot_x = pad + col_idx * (scaled_slot_w + scaled_col_gap)
+            slot_x = pad + col_idx * (slot_w + scaled_col_gap)
             scaled_cell_h = max(1, int(target_hs[i] * scale))
             scaled_img = _fit_to_height(fitted[i], scaled_cell_h)
             canvas.paste(scaled_img, (slot_x, y))
