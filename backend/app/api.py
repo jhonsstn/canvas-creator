@@ -143,7 +143,7 @@ def generate(job_id: str, req: GenerateRequest):
         )
 
         try:
-            canvas = build_canvas(images, scales, canvas_width_scale)
+            canvas = build_canvas(images, scales, canvas_width_scale, show_grid=req.show_grid)
         except Exception as e:
             raise HTTPException(500, f"Layout failed: {e}")
 

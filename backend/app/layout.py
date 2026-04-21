@@ -1,5 +1,5 @@
 from __future__ import annotations
-from PIL import Image
+from PIL import Image, ImageDraw
 
 CELL_HEIGHT = 800          # px — reference image height at scale 1×
 REF_EXTRA_BELOW = 0.5      # blank space below reference, as a fraction of the cell height
@@ -11,6 +11,9 @@ OUTER_PAD = 80             # canvas outer margin
 CANVAS_WIDTH = 4000        # fixed canvas width; height scales with rows
 CANVAS_WIDTH_BONUS = 1.2   # multiply final width; extra space is added to drawing columns
 N_COLS = 2                 # number of ref+draw pairs per row
+GRID_DIVISIONS = 6         # NxN grid per image cell (ref and drawing block each)
+GRID_LINE_COLOR = (0, 0, 0, 80)  # rgba — subtle dark overlay
+GRID_LINE_WIDTH = 2        # px at natural scale, scaled with canvas
 
 
 def _fit_to_height(img: Image.Image, target_h: int) -> Image.Image:
@@ -19,10 +22,23 @@ def _fit_to_height(img: Image.Image, target_h: int) -> Image.Image:
     return img.resize((new_w, target_h), Image.LANCZOS)
 
 
+def _draw_grid(draw: ImageDraw.ImageDraw, x0: int, y0: int, x1: int, y1: int, cell_px: int, line_w: int) -> None:
+    x = x0 + cell_px
+    while x < x1:
+        draw.line([(x, y0), (x, y1)], fill=GRID_LINE_COLOR, width=line_w)
+        x += cell_px
+    y = y0 + cell_px
+    while y < y1:
+        draw.line([(x0, y), (x1, y)], fill=GRID_LINE_COLOR, width=line_w)
+        y += cell_px
+    draw.rectangle([x0, y0, x1 - 1, y1 - 1], outline=GRID_LINE_COLOR, width=line_w)
+
+
 def build_canvas(
     images: list[Image.Image],
     scales: list[float] | None = None,
     canvas_width_scale: float = 1.0,
+    show_grid: bool = False,
 ) -> Image.Image:
     """
     2-column grid. Each cell = reference block (image + 0.5× blank below)
@@ -79,6 +95,8 @@ def build_canvas(
 
     canvas = Image.new("RGB", (canvas_w, canvas_h), "white")
 
+    cell_rects: list[tuple[int, int, int, int, int, int, int, int]] = []  # (ref_x0,y0,ref_x1,y1, draw_x0,y0,draw_x1,y1)
+
     y = pad
     for r, row in enumerate(row_indices):
         for col_idx, i in enumerate(row):
@@ -86,6 +104,30 @@ def build_canvas(
             scaled_cell_h = max(1, int(target_hs[i] * scale))
             scaled_img = _fit_to_height(fitted[i], scaled_cell_h)
             canvas.paste(scaled_img, (slot_x, y))
+
+            if show_grid:
+                scaled_ref_w = scaled_img.width
+                scaled_draw_w = int(draw_ws[i] * scale) + extra_per_col
+                scaled_draw_h = int(draw_hs[i] * scale)
+                scaled_pair_gap = int(PAIR_GAP * scale)
+                draw_x0 = slot_x + scaled_ref_w + scaled_pair_gap
+                cell_rects.append((
+                    slot_x, y, slot_x + scaled_ref_w, y + scaled_cell_h,
+                    draw_x0, y, draw_x0 + scaled_draw_w, y + scaled_draw_h,
+                ))
+
         y += int(row_hs[r] * scale) + scaled_row_gap
+
+    if show_grid and cell_rects:
+        overlay = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+        line_w = max(1, int(GRID_LINE_WIDTH * scale))
+        # Cell size is fixed in canvas pixels so ref and drawing block share identical squares.
+        # Larger per-image scales produce more cells (same physical cell size).
+        cell_px = max(1, int(CELL_HEIGHT * scale / GRID_DIVISIONS))
+        for ref_x0, ref_y0, ref_x1, ref_y1, drw_x0, drw_y0, drw_x1, drw_y1 in cell_rects:
+            _draw_grid(draw, ref_x0, ref_y0, ref_x1, ref_y1, cell_px, line_w)
+            _draw_grid(draw, drw_x0, drw_y0, drw_x1, drw_y1, cell_px, line_w)
+        canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
 
     return canvas

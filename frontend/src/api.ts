@@ -34,7 +34,8 @@ export async function generateCanvas(
   imageIds: string[],
   crops: Record<string, CropRect> = {},
   scales: Record<string, number> = {},
-  globalScale: number | null = null
+  globalScale: number | null = null,
+  showGrid: boolean = false
 ): Promise<string> {
   const body: Record<string, unknown> = {
     image_ids: imageIds,
@@ -42,6 +43,7 @@ export async function generateCanvas(
     scales,
   };
   if (globalScale !== null) body.global_scale = globalScale;
+  if (showGrid) body.show_grid = true;
   const res = await fetch(`${BASE}/jobs/${jobId}/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

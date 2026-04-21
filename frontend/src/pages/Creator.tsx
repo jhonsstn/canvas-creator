@@ -21,6 +21,7 @@ export default function Creator() {
   const [crops, setCrops] = useState<Record<string, CropRect>>({});
   const [scales, setScales] = useState<Record<string, number>>({});
   const [globalScale, setGlobalScale] = useState<number | null>(null);
+  const [showGrid, setShowGrid] = useState(false);
   const [editing, setEditing] = useState<{ row: UploadedImage; index: number } | null>(null);
   const [canvasUrl, setCanvasUrl] = useState<string | null>(null);
   const [canvasSize, setCanvasSize] = useState<{ w: number; h: number } | null>(null);
@@ -86,13 +87,15 @@ export default function Creator() {
         rows.map((r) => r.image_id),
         crops,
         scales,
-        globalScale
+        globalScale,
+        showGrid
       );
       setCanvasUrl(url + "?t=" + Date.now());
       setRows([]);
       setCrops({});
       setScales({});
       setGlobalScale(null);
+      setShowGrid(false);
       setJobId(null);
     } catch (e: unknown) {
       setError(String(e));
@@ -216,6 +219,14 @@ export default function Creator() {
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="grid-toggle">
+              <input
+                type="checkbox"
+                checked={showGrid}
+                onChange={(e) => setShowGrid(e.target.checked)}
+              />
+              <span>grid</span>
             </label>
             <button
               className="generate-btn"

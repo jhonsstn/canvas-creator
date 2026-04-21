@@ -21,6 +21,7 @@ class GenerateRequest(BaseModel):
     crops: dict[str, CropRect] = {}
     scales: dict[str, float] = {}
     global_scale: Optional[float] = None
+    show_grid: bool = False
 
 
 class Job(BaseModel):
