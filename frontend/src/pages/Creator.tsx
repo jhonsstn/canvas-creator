@@ -59,6 +59,7 @@ export default function Creator() {
   const onInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files) handleFiles(e.target.files);
+      e.target.value = "";
     },
     [handleFiles]
   );
@@ -157,33 +158,35 @@ export default function Creator() {
 
   return (
     <>
-      <section>
-        <div className="section-label">
-          <span className="num">01 /</span>
-          <h2>Upload references</h2>
-          <span className="rule" />
-        </div>
+      {!canvasUrl && (
+        <section>
+          <div className="section-label">
+            <span className="num">01 /</span>
+            <h2>Upload references</h2>
+            <span className="rule" />
+          </div>
 
-        <div
-          ref={dropRef}
-          className={`dropzone${loading ? " disabled" : ""}`}
-          onDrop={onDrop}
-          onDragOver={(e) => e.preventDefault()}
-          onClick={() => document.getElementById("file-input")?.click()}
-        >
-          <span className="plus">+</span>
-          <span className="primary">Drop images · or click to browse</span>
-          <span className="secondary">PNG, JPG, WebP — any size, any shape</span>
-          <input
-            id="file-input"
-            type="file"
-            multiple
-            accept="image/*"
-            style={{ display: "none" }}
-            onChange={onInputChange}
-          />
-        </div>
-      </section>
+          <div
+            ref={dropRef}
+            className={`dropzone${loading ? " disabled" : ""}`}
+            onDrop={onDrop}
+            onDragOver={(e) => e.preventDefault()}
+            onClick={() => document.getElementById("file-input")?.click()}
+          >
+            <span className="plus">+</span>
+            <span className="primary">Drop images · or click to browse</span>
+            <span className="secondary">PNG, JPG, WebP — any size, any shape</span>
+            <input
+              id="file-input"
+              type="file"
+              multiple
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={onInputChange}
+            />
+          </div>
+        </section>
+      )}
 
       {rows.length > 0 && (
         <section className="image-list">
