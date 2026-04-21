@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, Response
 from PIL import Image
 
 from app.jobs import all_jobs, create_job, get_job, save_job, delete_job
-from app.models import GenerateRequest, CropRect, Job
+from app.models import GenerateRequest, RecomposeRequest, CropRect, Job
 from app.layout import build_canvas
 
 router = APIRouter()
@@ -45,6 +45,23 @@ def list_jobs():
     return jobs
 
 
+@router.get("/jobs/{job_id}")
+def job_detail(job_id: str):
+    job = get_job(job_id)
+    if job is None:
+        raise HTTPException(404, "Job not found")
+    return {
+        "job_id": job.job_id,
+        "status": job.status,
+        "has_canvas": job.canvas_path is not None,
+        "canvas_size": [job.canvas_w, job.canvas_h] if job.canvas_w and job.canvas_h else None,
+        "originals_available": bool(job.images),
+        "global_scale": job.global_scale,
+        "show_grid": job.show_grid,
+        "image_order": job.image_order,
+    }
+
+
 @router.delete("/jobs/{job_id}")
 def remove_job(job_id: str):
     job = get_job(job_id)
@@ -60,7 +77,8 @@ def remove_job(job_id: str):
     delete_job(job_id)
     return {"success": True}
 
-ABANDON_TTL_SECONDS = 60 * 60  # originals for jobs without a canvas older than this are swept
+
+ORIGINALS_TTL_SECONDS = 30 * 60  # originals kept for 30 min after generate (or after upload if abandoned)
 
 
 def _cleanup_originals(job: Job) -> None:
@@ -74,7 +92,13 @@ def _cleanup_originals(job: Job) -> None:
 def _sweep_abandoned() -> None:
     now = time.time()
     for job in list(all_jobs()):
-        if job.canvas_path is None and job.images and now - job.created_at > ABANDON_TTL_SECONDS:
+        if not job.images:
+            continue
+        # Abandoned upload: no canvas produced within TTL
+        if job.canvas_path is None and now - job.created_at > ORIGINALS_TTL_SECONDS:
+            _cleanup_originals(job)
+        # Generated but originals TTL has passed
+        elif job.originals_expire_at is not None and now > job.originals_expire_at:
             _cleanup_originals(job)
 
 
@@ -155,13 +179,75 @@ def generate(job_id: str, req: GenerateRequest):
         job.canvas_path = str(canvas_path)
         job.canvas_w, job.canvas_h = canvas.size
         job.status = "done"
+        # Persist generate inputs so re-compose can replay them
+        job.image_order = req.image_ids
+        job.crops = req.crops
+        job.scales = req.scales
+        job.global_scale = req.global_scale
+        job.show_grid = req.show_grid
+        job.originals_expire_at = time.time() + ORIGINALS_TTL_SECONDS
         save_job(job)
     except Exception:
         job.status = "error"
         _cleanup_originals(job)
         raise
-    else:
-        _cleanup_originals(job)
+
+    return {"canvas_url": f"/jobs/{job_id}/canvas.png"}
+
+
+@router.post("/jobs/{job_id}/recompose")
+def recompose(job_id: str, req: RecomposeRequest):
+    job = get_job(job_id)
+    if job is None:
+        raise HTTPException(404, "Job not found")
+    if not job.images:
+        raise HTTPException(410, "Originals have expired — start a new canvas")
+    if not job.image_order:
+        raise HTTPException(400, "No previous generate to replay")
+
+    try:
+        images: list[Image.Image] = []
+        for image_id in job.image_order:
+            img_path = job.images.get(image_id)
+            if img_path is None:
+                raise HTTPException(400, f"Image not found: {image_id}")
+            with Image.open(img_path) as img:
+                img.load()
+                rgb = img.convert("RGB")
+            crop = job.crops.get(image_id)
+            if crop is not None:
+                rgb = _apply_crop(rgb, crop)
+            images.append(rgb)
+
+        effective_global = req.global_scale if req.global_scale is not None else job.global_scale
+        scales = [
+            effective_global if effective_global is not None
+            else job.scales.get(image_id, 1.0)
+            for image_id in job.image_order
+        ]
+        canvas_width_scale = (
+            effective_global if effective_global is not None
+            else max(scales, default=1.0)
+        )
+
+        try:
+            canvas = build_canvas(images, scales, canvas_width_scale, show_grid=req.show_grid)
+        except Exception as e:
+            raise HTTPException(500, f"Layout failed: {e}")
+
+        out_dir = STORAGE / job_id
+        out_dir.mkdir(exist_ok=True)
+        canvas_path = out_dir / "canvas.png"
+        canvas.save(str(canvas_path), format="PNG", optimize=True)
+
+        job.canvas_path = str(canvas_path)
+        job.canvas_w, job.canvas_h = canvas.size
+        job.global_scale = effective_global
+        job.show_grid = req.show_grid
+        job.originals_expire_at = time.time() + ORIGINALS_TTL_SECONDS
+        save_job(job)
+    except Exception:
+        raise
 
     return {"canvas_url": f"/jobs/{job_id}/canvas.png"}
 

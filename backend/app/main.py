@@ -1,8 +1,16 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import router
+from app.api import router, _sweep_abandoned
 
-app = FastAPI(title="Canvas Creator")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _sweep_abandoned()
+    yield
+
+
+app = FastAPI(title="Canvas Creator", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

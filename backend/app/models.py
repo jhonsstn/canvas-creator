@@ -24,6 +24,11 @@ class GenerateRequest(BaseModel):
     show_grid: bool = False
 
 
+class RecomposeRequest(BaseModel):
+    global_scale: Optional[float] = None
+    show_grid: bool = False
+
+
 class Job(BaseModel):
     job_id: str
     images: dict[str, str] = {}  # image_id -> filepath
@@ -33,3 +38,10 @@ class Job(BaseModel):
     status: str = "pending"  # pending | done | error
     error: Optional[str] = None
     created_at: float = Field(default_factory=time.time)
+    # Persisted generate inputs for re-compose
+    image_order: list[str] = []
+    crops: dict[str, CropRect] = {}
+    scales: dict[str, float] = {}
+    global_scale: Optional[float] = None
+    show_grid: bool = False
+    originals_expire_at: Optional[float] = None

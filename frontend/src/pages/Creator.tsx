@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { CropRect, UploadedImage } from "../api";
-import { generateCanvas, SCALE_PRESETS, thumbUrl, uploadImages } from "../api";
+import { generateCanvas, recomposeCanvas, SCALE_PRESETS, thumbUrl, uploadImages } from "../api";
 import CropDialog from "../CropDialog";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
@@ -27,6 +27,7 @@ export default function Creator() {
   const [canvasSize, setCanvasSize] = useState<{ w: number; h: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [originalsExpired, setOriginalsExpired] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
@@ -94,14 +95,44 @@ export default function Creator() {
       setRows([]);
       setCrops({});
       setScales({});
-      setGlobalScale(null);
-      setShowGrid(false);
-      setJobId(null);
+      setOriginalsExpired(false);
     } catch (e: unknown) {
       setError(String(e));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRecompose = async () => {
+    if (!jobId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await recomposeCanvas(jobId, globalScale, showGrid);
+      if (result.expired) {
+        setOriginalsExpired(true);
+      } else {
+        setCanvasUrl(result.url + "?t=" + Date.now());
+        setOriginalsExpired(false);
+      }
+    } catch (e: unknown) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNewCanvas = () => {
+    setJobId(null);
+    setRows([]);
+    setCrops({});
+    setScales({});
+    setGlobalScale(null);
+    setShowGrid(false);
+    setCanvasUrl(null);
+    setCanvasSize(null);
+    setError(null);
+    setOriginalsExpired(false);
   };
 
   const handleSaveCrop = (crop: CropRect | null, scale: number) => {
@@ -272,6 +303,57 @@ export default function Creator() {
             />
           </div>
           <p className="caption">Reference sheet, composed {TODAY.toLowerCase()}.</p>
+
+          <div className="generate-bar">
+            {originalsExpired ? (
+              <span className="hint">Originals expired — start a new canvas to re-compose.</span>
+            ) : (
+              <>
+                <span className="hint">Re-compose with different settings.</span>
+                <label className="scale-override">
+                  <span>Scale override</span>
+                  <select
+                    value={globalScale ?? ""}
+                    onChange={(e) =>
+                      setGlobalScale(e.target.value === "" ? null : Number(e.target.value))
+                    }
+                    disabled={loading}
+                  >
+                    <option value="">Auto (per image)</option>
+                    {SCALE_PRESETS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}×
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid-toggle">
+                  <input
+                    type="checkbox"
+                    checked={showGrid}
+                    onChange={(e) => setShowGrid(e.target.checked)}
+                    disabled={loading}
+                  />
+                  <span>grid</span>
+                </label>
+                <button
+                  className="generate-btn"
+                  onClick={handleRecompose}
+                  disabled={loading}
+                >
+                  {loading ? "Composing" : "Re-compose"}
+                </button>
+              </>
+            )}
+            <button
+              className="remove-btn"
+              style={{ marginLeft: "auto" }}
+              onClick={handleNewCanvas}
+              disabled={loading}
+            >
+              New canvas
+            </button>
+          </div>
         </section>
       )}
 

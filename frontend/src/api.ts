@@ -62,6 +62,39 @@ export interface JobRecord {
   canvas_size: [number, number] | null;
 }
 
+export interface JobDetail {
+  job_id: string;
+  status: string;
+  has_canvas: boolean;
+  canvas_size: [number, number] | null;
+  originals_available: boolean;
+  global_scale: number | null;
+  show_grid: boolean;
+  image_order: string[];
+}
+
+export async function getJob(jobId: string): Promise<JobDetail> {
+  const res = await fetch(`${BASE}/jobs/${jobId}`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function recomposeCanvas(
+  jobId: string,
+  globalScale: number | null,
+  showGrid: boolean
+): Promise<{ url: string; expired: boolean }> {
+  const res = await fetch(`${BASE}/jobs/${jobId}/recompose`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ global_scale: globalScale, show_grid: showGrid }),
+  });
+  if (res.status === 410) return { url: "", expired: true };
+  if (!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  return { url: `${BASE}${data.canvas_url}`, expired: false };
+}
+
 export async function getJobs(): Promise<JobRecord[]> {
   const res = await fetch(`${BASE}/jobs`);
   if (!res.ok) throw new Error(await res.text());
