@@ -2,6 +2,12 @@ import { useCallback, useRef, useState } from "react";
 import type { CropRect, UploadedImage } from "../api";
 import { generateCanvas, recomposeCanvas, SCALE_PRESETS, thumbUrl, uploadImages } from "../api";
 import CropDialog from "../CropDialog";
+import Select from "../Select";
+
+const SCALE_OPTIONS: { value: number | null; label: string }[] = [
+  { value: null, label: "Auto (per image)" },
+  ...SCALE_PRESETS.map((s) => ({ value: s as number | null, label: `${s}×` })),
+];
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 const ORIGINAL_URL = (jobId: string, imageId: string) =>
@@ -240,19 +246,12 @@ export default function Creator() {
             </span>
             <label className="scale-override">
               <span>Scale override</span>
-              <select
-                value={globalScale ?? ""}
-                onChange={(e) =>
-                  setGlobalScale(e.target.value === "" ? null : Number(e.target.value))
-                }
-              >
-                <option value="">Auto (per image)</option>
-                {SCALE_PRESETS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}×
-                  </option>
-                ))}
-              </select>
+              <Select
+                value={globalScale}
+                options={SCALE_OPTIONS}
+                onChange={setGlobalScale}
+                ariaLabel="Scale override"
+              />
             </label>
             <label className="grid-toggle">
               <input
@@ -315,20 +314,13 @@ export default function Creator() {
                 <span className="hint">Re-compose with different settings.</span>
                 <label className="scale-override">
                   <span>Scale override</span>
-                  <select
-                    value={globalScale ?? ""}
-                    onChange={(e) =>
-                      setGlobalScale(e.target.value === "" ? null : Number(e.target.value))
-                    }
+                  <Select
+                    value={globalScale}
+                    options={SCALE_OPTIONS}
+                    onChange={setGlobalScale}
                     disabled={loading}
-                  >
-                    <option value="">Auto (per image)</option>
-                    {SCALE_PRESETS.map((s) => (
-                      <option key={s} value={s}>
-                        {s}×
-                      </option>
-                    ))}
-                  </select>
+                    ariaLabel="Scale override"
+                  />
                 </label>
                 <label className="grid-toggle">
                   <input
