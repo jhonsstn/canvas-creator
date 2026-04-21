@@ -346,7 +346,7 @@ export default function Creator() {
               </>
             )}
             <button
-              className="remove-btn"
+              className="ghost-btn"
               style={{ marginLeft: "auto" }}
               onClick={handleNewCanvas}
               disabled={loading}
