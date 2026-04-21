@@ -4,12 +4,13 @@ import type { Area } from "react-easy-crop";
 import type { CropRect } from "./api";
 import { SCALE_PRESETS } from "./api";
 
-type AspectOption = "free" | "1:1" | "3:4";
+type AspectOption = "free" | "1:1" | "3:4" | "1:2";
 
 const ASPECT_VALUES: Record<AspectOption, number | undefined> = {
   free: undefined,
   "1:1": 1,
   "3:4": 3 / 4,
+  "1:2": 1 / 2,
 };
 
 function inferAspect(
@@ -20,6 +21,7 @@ function inferAspect(
   const ratio = (crop.w * nat.w) / (crop.h * nat.h);
   if (Math.abs(ratio - 1) < 0.02) return "1:1";
   if (Math.abs(ratio - 3 / 4) < 0.02) return "3:4";
+  if (Math.abs(ratio - 1 / 2) < 0.02) return "1:2";
   return "free";
 }
 
